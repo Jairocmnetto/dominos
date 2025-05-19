@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ranking Dominó Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @keyframes neonPulse {
+      0%   { filter: drop-shadow(0 0 2px rgba(34,197,94,0.5)); }
+      50%  { filter: drop-shadow(0 0 8px rgba(34,197,94,0.9)); }
+      100% { filter: drop-shadow(0 0 2px rgba(34,197,94,0.5)); }
+    }
+    .neon-glow {
+      animation: neonPulse 2s infinite;
+    }
+    .cyber-border {
+      border: 1px solid rgba(34,197,94,0.3);
+      background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(40,40,40,0.9));
+      backdrop-filter: blur(10px);
+    }
+    .sidebar {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateX(-100%);
+    }
+    .sidebar.visible {
+      transform: translateX(0);
+    }
+    @media (min-width: 1024px) {
+      .sidebar {
+        transform: translateX(0);
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#0a0a0a] text-white min-h-screen font-sans overflow-x-hidden">
+
+  <!-- Sidebar -->
+  <div class="sidebar fixed left-0 top-0 h-screen w-80 bg-[#0d0d0d] cyber-border z-50 shadow-2xl">
+    <div class="p-6">
+      <button onclick="toggleSidebar()" class="lg:hidden absolute right-4 top-4 text-gray-400 hover:text-white">✕</button>
+      <h2 class="text-2xl font-bold text-emerald-400 mb-6">🏁 Registrar Partida</h2>
+      <form id="formPartida" class="space-y-4">
+        <div>
+          <label class="block text-sm text-emerald-300 mb-2">Time Vencedor</label>
+          <div class="space-y-2">
+            <select id="vencedor1" required class="w-full p-2 rounded-lg bg-black/30 border border-emerald-500/30 focus:border-emerald-500 appearance-none">
+              <option value="">Selecione um jogador</option>
+            </select>
+            <select id="vencedor2" required class="w-full p-2 rounded-lg bg-black/30 border border-emerald-500/30 focus:border-emerald-500 appearance-none">
+              <option value="">Selecione um jogador</option>
+            </select>
+            <input type="number" id="pontosVencedor" placeholder="Pontos" required class="w-full p-2 rounded-lg bg-black/30 border border-emerald-500/30 focus:border-emerald-500">
+          </div>
+        </div>
+        <div class="pt-4">
+          <label class="block text-sm text-emerald-300 mb-2">Time Perdedor</label>
+          <div class="space-y-2">
+            <select id="perdedor1" required class="w-full p-2 rounded-lg bg-black/30 border border-emerald-500/30 focus:border-emerald-500 appearance-none">
+              <option value="">Selecione um jogador</option>
+            </select>
+            <select id="perdedor2" required class="w-full p-2 rounded-lg bg-black/30 border border-emerald-500/30 focus:border-emerald-500 appearance-none">
+              <option value="">Selecione um jogador</option>
+            </select>
+            <input type="number" id="pontosPerdedor" placeholder="Pontos" required class="w-full p-2 rounded-lg bg-black/30 border border-emerald-500/30 focus:border-emerald-500">
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 py-2 rounded-xl font-medium transition-all mt-6">🚀 Registrar Partida</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Overlay Mobile -->
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+  <!-- Toggle Sidebar Button Mobile -->
+  <button class="fixed bottom-6 right-6 lg:hidden z-50 p-4 bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-2xl transition-all" onclick="toggleSidebar()">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+    </svg>
+  </button>
+
+  <!-- Modal Cadastro Jogador -->
+  <div id="modalJogador" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="cyber-border rounded-2xl w-full max-w-md p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold text-emerald-400">🎮 Novo Jogador</h3>
+        <button onclick="toggleModal()" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      <form id="formJogador" class="space-y-4">
+        <div>
+          <label class="block text-sm text-emerald-300 mb-2">Nome Completo</label>
+          <input type="text" id="nomeCompleto" required class="w-full p-2 rounded-lg bg-black/30 border border-emerald-500/30 focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm text-emerald-300 mb-2">Apelido</label>
+          <input type="text" id="apelido" required class="w-full p-2 rounded-lg bg-black/30 border border-emerald-500/30 focus:border-emerald-500">
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 py-2 rounded-xl font-medium transition-all">➕ Cadastrar Jogador</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="lg:ml-80 transition-all duration-300">
+    <div class="absolute inset-0 z-0 opacity-20">
+      <div class="absolute w-[500px] h-[500px] bg-emerald-500/10 -top-64 -left-64 rounded-full blur-3xl"></div>
+      <div class="absolute w-[500px] h-[500px] bg-purple-500/10 -bottom-64 -right-64 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 py-12 space-y-8 relative z-10">
+      <!-- Header -->
+      <div class="cyber-border rounded-2xl p-8 shadow-2xl">
+        <h1 class="text-5xl md:text-6xl font-bold text-center bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent neon-glow">
+          DOMINÓ SENAI
+        </h1>
+        <div class="mt-4 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div class="relative w-full md:w-1/3">
+            <input type="text" id="search" placeholder="Buscar jogador..." class="w-full p-3 rounded-xl bg-black/30 backdrop-blur-sm border border-emerald-500/30 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/50 transition-all"/>
+            <div class="absolute right-3 top-3 text-emerald-500">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <button onclick="toggleModal()" class="bg-gradient-to-r from-purple-600 to-indigo-700 hover:opacity-90 px-6 py-2.5 rounded-xl font-medium transition-all">👤 Novo Jogador</button>
+            <div class="text-sm text-emerald-300/80 font-mono">
+              <span class="text-emerald-500">⟁</span> Atualizado:
+              <span id="dataAtual" class="text-white"></span>
+            </div>
+            <button onclick="carregarDados()" class="bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 px-6 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 group">
+              <svg class="w-5 h-5 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Atualizar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela de Ranking -->
+      <div class="cyber-border rounded-2xl overflow-hidden shadow-2xl">
+        <table class="w-full table-auto border-collapse">
+          <thead>
+            <tr class="bg-gradient-to-r from-emerald-900/50 to-green-900/50 backdrop-blur-sm">
+              <th class="px-6 py-4 text-left font-medium text-emerald-300">Jogador</th>
+              <th class="px-6 py-4 font-medium text-emerald-300">Vitórias</th>
+              <th class="px-6 py-4 font-medium text-emerald-300">Derrotas</th>
+              <th class="px-6 py-4 font-medium text-emerald-300">Partidas</th>
+              <th class="px-6 py-4 font-medium text-emerald-300">% Vitórias</th>
+              <th class="px-6 py-4 font-medium text-emerald-300">Pontos</th>
+              <th class="px-6 py-4 font-medium text-emerald-300">Rank</th>
+            </tr>
+          </thead>
+          <tbody id="ranking-table" class="divide-y divide-emerald-900/50"></tbody>
+        </table>
+      </div>
+
+      <!-- Gráfico -->
+      <div class="cyber-border rounded-2xl p-6 shadow-2xl">
+        <h2 class="text-xl font-bold text-emerald-300 mb-6 flex items-center gap-2">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          Performance dos Jogadores
+        </h2>
+        <canvas id="graficoRanking" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxarvT5K8tIvvv9yY5l1wGvET7-aNHbn72k1rget8sqjzTg5r_Kjbc1DRmamDoe8zAdDA/exec';
+
+    let jogadores = [];
+    let grafico;
+
+    function toggleSidebar() {
+      document.querySelector('.sidebar').classList.toggle('visible');
+      document.getElementById('sidebarOverlay').classList.toggle('hidden');
+    }
+
+    function toggleModal() {
+      const modal = document.getElementById('modalJogador');
+      modal.classList.toggle('hidden');
+      modal.classList.toggle('flex');
+    }
+
+    const calcularRank = (vitorias, taxa) => {
+      if (vitorias >= 100 && taxa >= 0.7) return '👑 Lendário';
+      if (vitorias >= 70) return '🥇 Elite';
+      if (vitorias >= 40) return '🥈 Profissional';
+      if (vitorias >= 20) return '🥉 Intermediário';
+      if (vitorias >= 5) return '🎯 Iniciante';
+      return '🔰 Novato';
+    };
+
+    const renderTabela = filtro => {
+      const tabela = document.getElementById('ranking-table');
+      tabela.innerHTML = '';
+
+      const filtrado = jogadores
+        .filter(j => j.nome.toLowerCase().includes((filtro || '').toLowerCase()))
+        .sort((a, b) => b.vitorias - a.vitorias || b.diferenca - a.diferenca);
+
+      filtrado.forEach(j => {
+        const taxa = j.partidas
+          ? `${Math.round((j.taxa || j.vitorias / j.partidas) * 100)}%`
+          : '0%';
+        const rank = calcularRank(j.vitorias, j.taxa);
+        tabela.innerHTML += `
+          <tr class="hover:bg-zinc-800 transition">
+            <td class="px-4 py-3 text-left text-green-300 font-semibold">${j.nome}</td>
+            <td class="px-4 py-3">${j.vitorias}</td>
+            <td class="px-4 py-3">${j.derrotas}</td>
+            <td class="px-4 py-3">${j.partidas}</td>
+            <td class="px-4 py-3">${taxa}</td>
+            <td class="px-4 py-3">${j.diferenca}</td>
+            <td class="px-4 py-3 text-emerald-400 font-bold">${rank}</td>
+          </tr>`;
+      });
+
+      renderGrafico(filtrado);
+    };
+
+    const renderGrafico = data => {
+      const ctx = document.getElementById('graficoRanking').getContext('2d');
+      if (grafico) grafico.destroy();
+      grafico = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(j => j.nome),
+          datasets: [
+            { label: 'Vitórias', data: data.map(j => j.vitorias) },
+            { label: 'Derrotas', data: data.map(j => j.derrotas) }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, ticks: { color: '#fff' } },
+            x: { ticks: { color: '#fff' } }
+          },
+          plugins: { legend: { labels: { color: '#fff' } } }
+        }
+      });
+    };
+
+    const atualizarSelects = () => {
+      document.querySelectorAll('select[id^="vencedor"], select[id^="perdedor"]').forEach(select => {
+        select.options.length = 1;
+        jogadores.forEach(j => {
+          const opt = document.createElement('option');
+          opt.value = j.nome;
+          opt.textContent = j.nome;
+          select.appendChild(opt);
+        });
+      });
+    };
+
+    const carregarDados = async () => {
+      try {
+        const res = await fetch(API_URL, { method: 'GET', mode: 'cors' });
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const json = await res.json();
+        if (!json.data) throw new Error('Formato inválido');
+        jogadores = json.data.filter(j => j.nome);
+        renderTabela();
+        atualizarSelects();
+      } catch (e) {
+        console.error(e);
+        alert(`Erro ao carregar dados: ${e.message}`);
+      }
+    };
+
+    document.getElementById('formJogador').addEventListener('submit', async e => {
+      e.preventDefault();
+      const jogador = {
+        nome: document.getElementById('nomeCompleto').value,
+        apelido: document.getElementById('apelido').value
+      };
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(jogador)
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Erro');
+        alert('Jogador cadastrado com sucesso!');
+        toggleModal();
+        e.target.reset();
+        await carregarDados();
+      } catch (e) {
+        console.error(e);
+        alert(`Erro ao cadastrar: ${e.message}`);
+      }
+    });
+
+    document.getElementById('formPartida').addEventListener('submit', async e => {
+      e.preventDefault();
+      const partida = {
+        vencedores: [document.getElementById('vencedor1').value, document.getElementById('vencedor2').value],
+        perdedores:  [document.getElementById('perdedor1').value, document.getElementById('perdedor2').value],
+        pontosVencedor:  document.getElementById('pontosVencedor').value,
+        pontosPerdedor:  document.getElementById('pontosPerdedor').value
+      };
+      if (Object.values(partida).some(v => !v || (Array.isArray(v) && v.includes('')))) {
+        alert('Preencha todos os campos!');
+        return;
+      }
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(partida)
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Erro');
+        alert(json.message);
+        e.target.reset();
+        await carregarDados();
+      } catch (e) {
+        console.error(e);
+        alert(`Erro ao registrar partida: ${e.message}`);
+      }
+    });
+
+    document.getElementById('search').addEventListener('input', e => renderTabela(e.target.value));
+
+    const dataHoje = () => {
+      const hoje = new Date();
+      const dia = hoje.getDay();
+      if (dia === 0 || dia === 6) return 'Fora do horário (Sábado/Domingo)';
+      return hoje.toLocaleDateString('pt-BR', {
+        weekday: 'long', day: '2-digit', month: 'short', year: 'numeric'
+      });
+    };
+    document.getElementById('dataAtual').innerText = dataHoje();
+    document.addEventListener('DOMContentLoaded', carregarDados);
+  </script>
+</body>
+</html>
